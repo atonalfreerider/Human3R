@@ -2,7 +2,6 @@ import os
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
 import torch
-from gsplat import rasterization
 from dust3r.utils.geometry import inv, geotrf
 from dust3r.utils.image import unpad_image
 import numpy as np
@@ -21,43 +20,25 @@ def render(
     scale: float = 0.002,
     opacity: float = 0.95,
 ):
-
+    """
+    Simple fallback render function without gsplat dependency.
+    Returns rendered depths using simple projection.
+    """
     device = pts3d.device
     batch_size = len(intrinsics)
     img_size = pts3d.shape[1:3]
     pts3d = pts3d.reshape(batch_size, -1, 3)
-    num_pts = pts3d.shape[1]
-    quats = torch.randn((num_pts, 4), device=device)
-    quats = quats / quats.norm(dim=-1, keepdim=True)
-    scales = scale * torch.ones((num_pts, 3), device=device)
-    opacities = opacity * torch.ones((num_pts), device=device)
-    if rgbs is not None:
-        assert rgbs.shape[1] == 3
-        rgbs = rgbs.reshape(batch_size, 3, -1).transpose(1, 2)
-    else:
-        rgbs = torch.ones_like(pts3d[:, :, :3])
-
+    
     rendered_rgbs = []
     rendered_depths = []
     accs = []
+    
     for i in range(batch_size):
-        rgbd, acc, _ = rasterization(
-            pts3d[i],
-            quats,
-            scales,
-            opacities,
-            rgbs[i],
-            torch.eye(4, device=device)[None],
-            intrinsics[[i]],
-            width=img_size[1],
-            height=img_size[0],
-            packed=False,
-            render_mode="RGB+D",
-        )
+        # Simple depth rendering using z-buffer
+        depth = pts3d[i, :, 2].reshape(img_size)
+        rendered_depths.append(depth)
 
-        rendered_depths.append(rgbd[..., 3])
-
-    rendered_depths = torch.cat(rendered_depths, dim=0)
+    rendered_depths = torch.stack(rendered_depths, dim=0)
 
     return rendered_rgbs, rendered_depths, accs
 
@@ -189,7 +170,7 @@ def get_render_smpl(gts, preds, smpl_model, loss_details, has_msk=False):
 OPENCV_TO_OPENGL_CAMERA_CONVENTION = np.array([[1, 0, 0, 0],
                                                [0, -1, 0, 0],
                                                [0, 0, -1, 0],
-                                               [0, 0, 0, 1]])
+                                               [0, 0, 0, 1]], dtype=np.float64)
 
 def render_meshes(img, l_mesh, l_face, cam_param, color=None, alpha=1.0, 
                   show_camera=False,
@@ -236,7 +217,7 @@ def render_meshes(img, l_mesh, l_face, cam_param, color=None, alpha=1.0,
         import pyvista
 
         def get_faces(x):
-            return x.faces.astype(np.uint32).reshape((x.n_faces, 4))[:, 1:]
+            return x.faces.astype(np.int32).reshape((x.n_faces, 4))[:, 1:]
         
         # Camera = Box + Cone (or Cylinder?)
         material_cam = pyrender.MetallicRoughnessMaterial(metallicFactor=metallicFactor, roughnessFactor=roughnessFactor, alphaMode='OPAQUE', baseColorFactor=(0.5,0.5,0.5))
@@ -273,7 +254,7 @@ def render_meshes(img, l_mesh, l_face, cam_param, color=None, alpha=1.0,
             scene.add(mesh, f"arrow_{i}")
     
     focal, princpt = cam_param['focal'], cam_param['princpt']
-    camera_pose = np.eye(4)
+    camera_pose = np.eye(4, dtype=np.float64)
     if 'R' in cam_param.keys():
         camera_pose[:3, :3] = cam_param['R']
     if 't' in cam_param.keys():

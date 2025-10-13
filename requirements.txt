@@ -1,11 +1,11 @@
-numpy==1.26.4
-torch
-torchvision
+numpy>=1.26.4,<2.2
+torch>=2.9.0
+torchvision>=0.20.0
 roma
 gradio
 matplotlib
 tqdm
-opencv-python
+opencv-python>=4.10.0
 scipy
 einops
 trimesh
@@ -13,10 +13,9 @@ tensorboard
 pyglet<2
 huggingface-hub[torch]>=0.22
 viser
-gradio
 lpips
 hydra-core
-pillow==10.3.0
+pillow>=10.3.0
 h5py
 accelerate
 transformers
@@ -24,6 +23,6 @@ scikit-learn
 OpenEXR
 pyrender==0.1.45
 smplx
-pyvista==0.42.3
-spaces==0.19.4
+pyvista>=0.44.0
+spaces>=0.19.4
 git+https://github.com/mattloper/chumpy@9b045ff5d6588a24a0bab52c83f032e2ba433e17

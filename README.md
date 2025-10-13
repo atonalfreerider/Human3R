@@ -29,27 +29,33 @@ https://github.com/user-attachments/assets/47fc7ecf-5235-471c-84b9-ccfeca6d56ea
 
 ### Installation
 
-1. Clone Human3R.
+1. Clone Human3R and checkout the dev branch.
 ```bash
-git clone https://github.com/fanegg/Human3R.git
+git clone https://github.com/atonalfreerider/Human3R.git
 cd Human3R
+git checkout dev
 ```
 
 2. Create the environment.
 ```bash
 conda create -n human3r python=3.11 cmake
 conda activate human3r
-conda install pytorch torchvision pytorch-cuda=12.4 -c pytorch -c nvidia  # use the correct version of cuda for your system
+
+# Install PyTorch 2.9 via pip (not available via conda yet)
+pip install torch>=2.9.0 torchvision>=0.20.0 --index-url https://download.pytorch.org/whl/cu121
+
+# Install other dependencies
 pip install -r requirements.txt
+
 # issues with pytorch dataloader, see https://github.com/pytorch/pytorch/issues/99625
 conda install 'llvm-openmp<16'
-# for training logging
-conda install -y gcc_linux-64 gxx_linux-64
-pip install git+https://github.com/nerfstudio-project/gsplat.git
+
 # for evaluation
 pip install evo
 pip install open3d
 ```
+
+**Note:** This project requires PyTorch 2.9 or later. Since PyTorch 2.9 is not yet available via conda, we install it via pip. Make sure to use the correct CUDA version for your system (cu121 for CUDA 12.1, cu118 for CUDA 11.8, etc.).
 
 3. Compile the cuda kernels for RoPE (as in CroCo v2).
 ```bash
